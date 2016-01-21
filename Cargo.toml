@@ -1,0 +1,14 @@
+[package]
+name = "overviewer-ng"
+version = "0.1.0"
+authors = ["Andrew Chin <achin@eminence32.net>"]
+description = "A tool to render Minecraft worlds"
+
+[dependencies]
+liboverviewer = {path = "liboverviewer"}
+nbtrs = {git = "https://github.com/overviewer/nbtrs"}
+
+
+[[bin]]
+name = "overviewer"
+path = "src/main.rs"

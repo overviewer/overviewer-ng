@@ -1,0 +1,8 @@
+[package]
+name = "liboverviewer"
+version = "0.1.0"
+authors = ["Andrew Chin <achin@eminence32.net>"]
+description = "A library for rendering Minecraft worlds"
+
+[dependencies]
+nbtrs = {git="https://github.com/overviewer/nbtrs"}
