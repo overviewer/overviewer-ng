@@ -47,7 +47,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "liboverviewer"
 version = "0.1.0"
 dependencies = [
+ "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "nbtrs 0.1.0 (git+https://github.com/overviewer/nbtrs)",
+]
+
+[[package]]
+name = "log"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

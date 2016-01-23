@@ -6,3 +6,4 @@ description = "A library for rendering Minecraft worlds"
 
 [dependencies]
 nbtrs = {git="https://github.com/overviewer/nbtrs"}
+log = "0.3"
