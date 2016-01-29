@@ -1,5 +1,5 @@
 
-use nbtrs::Tag;
+use nbtrs::{Tag, RegionFile};
 use super::error::OverviewerError;
 use std::path::{PathBuf, Path};
 use std::convert::From;
@@ -9,26 +9,40 @@ use std::fs::File;
 /// level.dat file, a players directory with info about each player, a data
 /// directory with info about that world's maps, and one or more "dimension"
 /// directories containing a set of region files with the actual world data.
+// TODO consider making these not public members
 pub struct World {
-    world_dir: PathBuf,
-    regionsets: Vec<Regionset>,
-    level_dat: Tag,
+    pub world_dir: PathBuf,
+    pub regionsets: Vec<Regionset>,
+    pub level_dat: Tag,
 }
 impl World {
     pub fn new<P: AsRef<Path>>(p: P) -> Result<World, OverviewerError> {
+        use flate2::read::GzDecoder;
+
         let world_dir = p.as_ref();
         if !world_dir.exists() {
             return Err(From::from(format!("Path {:?} does not exist", world_dir)));
         }
 
         let level_dat = world_dir.join("level.dat");
-        let mut level_dat_file = try!(File::open(level_dat));
-        let (_, level_dat_nbt) = try!(Tag::parse(&mut level_dat_file));
-        unimplemented!();
+        let level_dat_file = try!(File::open(level_dat));
+        let mut decoder = try!(GzDecoder::new(level_dat_file)); 
+        let (_, level_dat_nbt) = try!(Tag::parse(&mut decoder));
+
+        let mut regionsets = Vec::new();
+        for entry in try!(world_dir.read_dir()) {
+            // if this is a directory and it contains .mca files, then assume that it's a regionset
+            let path = try!(entry).path();
+            if path.is_dir() {
+                if try!(path.read_dir()).any(|e| e.ok().map_or(false, |f| f.path().extension().map_or(false, |ex| ex == "mca"))) {
+                    regionsets.push(try!(Regionset::new(path)));
+                }
+            }
+        }
 
         Ok(World {
             world_dir: world_dir.to_owned(),
-            regionsets: Vec::new(),
+            regionsets: regionsets,
             level_dat: level_dat_nbt,
         })
     }
@@ -63,7 +77,8 @@ impl Iterator for RegionsetIter {
 /// between Worlds and RegionSets.
 pub struct Regionset;
 impl Regionset {
-    pub fn new() -> Regionset {
+    /// Given a folder of MCA files, create a RegionSet
+    pub fn new<P: AsRef<Path>>(p: P) -> Result<Regionset, OverviewerError> {
         unimplemented!()
     }
     pub fn get_type(&self) -> String {
@@ -96,9 +111,20 @@ impl Iterator for ChunkIter {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-#[should_panic(expected = "IOError")]
-fn test_world_open_error() {
-    let world = World::new("/").unwrap();
+    #[test]
+    #[should_panic(expected = "IOError")]
+    fn test_world_open_error() {
+        let world = World::new("/").unwrap();
+    }
+
+    #[test]
+    fn test_world_open() {
+        let world = World::new("tests/data/OTD/world_189/").unwrap();
+        assert_eq!(world.regionsets.len(), 1);
+    }
+
 }

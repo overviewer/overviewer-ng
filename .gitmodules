@@ -1,0 +1,3 @@
+[submodule "liboverviewer/tests/data/OTD"]
+	path = liboverviewer/tests/data/OTD
+	url = https://github.com/overviewer/Overviewer-Test-Data.git
