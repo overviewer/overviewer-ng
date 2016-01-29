@@ -23,7 +23,7 @@ impl World {
 
         let level_dat = world_dir.join("level.dat");
         let mut level_dat_file = try!(File::open(level_dat));
-        let level_dat_nbt = try!(Tag::parse(&mut level_dat_file));
+        let (_, level_dat_nbt) = try!(Tag::parse(&mut level_dat_file));
         unimplemented!();
 
         Ok(World {
