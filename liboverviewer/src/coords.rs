@@ -68,12 +68,16 @@ pub trait System {
     fn name() -> &'static str;
 
     /// Its size in each direction, specificed as a bitwidth
-    fn size() -> (u8, u8, u8) { (0, 0, 0) }
+    fn size() -> (u8, u8, u8) {
+        (0, 0, 0)
+    }
 }
 
 // Blocks are special, they have no parent and no width.
 impl System for Block {
-    fn name() -> &'static str { "Block" }
+    fn name() -> &'static str {
+        "Block"
+    }
 }
 
 // handy macro: contains!(A, Coord, (wx, wy, wz), B)
@@ -113,8 +117,12 @@ impl Region, (5, 0, 5), Chunk}
 /// a World contains an infinite amount of chunks in the xz plane
 pub type World = Succ<Region>;
 impl System for World {
-    fn name() -> &'static str { "World" }
-    fn size() -> (u8, u8, u8) { panic!("infinity") }
+    fn name() -> &'static str {
+        "World"
+    }
+    fn size() -> (u8, u8, u8) {
+        panic!("infinity")
+    }
 }
 
 // A: Contained<B> is true only if A is a subelement of (is contained in) B at some point
@@ -150,7 +158,7 @@ pub struct Coord<El, In> {
 
     /// Positive Z faces south
     pub z: i64,
-    phantom: PhantomData<(El, In)>
+    phantom: PhantomData<(El, In)>,
 }
 
 // macro to make constructing coordinates less verbose
@@ -186,13 +194,18 @@ macro_rules! coord {
 // nice formatter for coordinates, using the macro representation
 impl<El: System + Contained<In>, In: System> Debug for Coord<El, In> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        formatter.write_str(format!("coord!({}, {}, {:?}, {:?}, {:?})", El::name(), In::name(), self.x, self.y, self.z).as_ref())
+        formatter.write_str(format!("coord!({}, {}, {:?}, {:?}, {:?})",
+                                    El::name(),
+                                    In::name(),
+                                    self.x,
+                                    self.y,
+                                    self.z)
+                                .as_ref())
     }
 }
 
 // join and split!
 impl<El: Contained<In> + System, In: System> Coord<El, In> {
-
     /// Constructs a new `Coord`
     ///
     /// The [`coords!`] macro is a small wrapper around `new`.
@@ -211,7 +224,12 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     ///
     /// [`coords!`]: ../macro.coord!.html
     pub fn new(x: i64, y: i64, z: i64) -> Coord<El, In> {
-        Coord {x:x, y:y, z:z, phantom: PhantomData} 
+        Coord {
+            x: x,
+            y: y,
+            z: z,
+            phantom: PhantomData,
+        }
     }
 
     // take an A-in-B coordinate, and add on a B-in-C coordinate
@@ -238,7 +256,9 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     ///
     /// [`split`]: #method.split
     pub fn join<End>(self, other: Coord<In, End>) -> Coord<El, End>
-        where El: Contained<End>, In: Contained<End>, End: System
+        where El: Contained<End>,
+              In: Contained<End>,
+              End: System
     {
         let (ox, oy, oz) = (other.x, other.y, other.z);
         let (x, y, z) = (self.x, self.y, self.z);
@@ -248,7 +268,7 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
                y + (oy << (osizey - sizey)),
                z + (oz << (osizez - sizez)))
     }
-    
+
     // split an A-in-C coordinate into (A-in-B, B-in-C) for any B
     // use like: let (a_in_b, b_in_c) = coord.split::<B>()
     /// Split this coordinate into two components
@@ -291,7 +311,8 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     /// # }
     /// ```
     pub fn split<Mid>(self) -> (Coord<El, Mid>, Coord<Mid, In>)
-        where El: Contained<Mid>, Mid: System + Contained<In>
+        where El: Contained<Mid>,
+              Mid: System + Contained<In>
     {
         let (x, y, z) = (self.x, self.y, self.z);
         let (osizex, osizey, osizez) = <Mid as System>::size();
@@ -299,7 +320,9 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
         let a = coord!(x & ((1 << (osizex - sizex)) - 1),
                        y & ((1 << (osizey - sizey)) - 1),
                        z & ((1 << (osizez - sizez)) - 1));
-        let b = coord!(x >> (osizex - sizex), y >> (osizey - sizey), z >> (osizez - sizez));
+        let b = coord!(x >> (osizex - sizex),
+                       y >> (osizey - sizey),
+                       z >> (osizez - sizez));
         (a, b)
     }
 }
@@ -350,13 +373,13 @@ mod test {
         }
         {
             let chunk = coord!(Chunk, World, 30, 4, -3);
-            let (_, region): (Coord<Chunk, Region>, Coord<Region, World>)  = chunk.split();
+            let (_, region): (Coord<Chunk, Region>, Coord<Region, World>) = chunk.split();
             assert_eq!(region.x, 0);
             assert_eq!(region.z, -1);
         }
         {
             let chunk = coord!(Chunk, World, 70, 16, -30);
-            let (_, region): (Coord<Chunk, Region>, Coord<Region, World>)  = chunk.split();
+            let (_, region): (Coord<Chunk, Region>, Coord<Region, World>) = chunk.split();
             assert_eq!(region.x, 2);
             assert_eq!(region.z, -1);
         }
