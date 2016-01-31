@@ -72,7 +72,7 @@ dependencies = [
 [[package]]
 name = "nbtrs"
 version = "0.1.0"
-source = "git+https://github.com/overviewer/nbtrs#55cb7e96a22736553434f822e0ac8ebeee98d56b"
+source = "git+https://github.com/overviewer/nbtrs#bdcca749c53bf3c3a22f5241feccbdcc4213226a"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
