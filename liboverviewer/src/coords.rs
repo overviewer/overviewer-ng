@@ -150,15 +150,14 @@ pub struct Coord<El, In> {
 
     /// Positive Z faces south
     pub z: i64,
-    pub phantom: PhantomData<(El, In)>
+    phantom: PhantomData<(El, In)>
 }
 
 // macro to make constructing coordinates less verbose
 // coord!(x, y, z) or coord!(El, In, x, y, z) both work.
 /// A macro to make constructing coordinates less verbose.
 ///
-/// You could just use the constructor for [`Coord`], but this macro is generally easier and
-/// clearer.
+/// You could just use [`Coord::new`], but this macro is sometimes earier.
 ///
 /// # Examples
 ///
@@ -173,24 +172,14 @@ pub struct Coord<El, In> {
 /// coord!{0, 1, 2}
 /// ```
 ///
-/// [`Coord`]: coords/struct.Coord.html
+/// [`Coord::new`]: coords/struct.Coord.html#method.new
 #[macro_export]
 macro_rules! coord {
     ($x:expr, $y:expr, $z:expr) => {
-        Coord {
-            x: $x,
-            y: $y,
-            z: $z,
-            phantom: PhantomData
-        }
+        Coord::new($x, $y, $z)
     };
     ($from:ty, $to:ty, $x:expr, $y:expr, $z:expr) => {
-        Coord::<$from, $to> {
-            x: $x,
-            y: $y,
-            z: $z,
-            phantom: PhantomData
-        }
+        Coord::<$from, $to>::new($x, $y, $z)
     };
 }
 
@@ -203,6 +192,28 @@ impl<El: System + Contained<In>, In: System> Debug for Coord<El, In> {
 
 // join and split!
 impl<El: Contained<In> + System, In: System> Coord<El, In> {
+
+    /// Constructs a new `Coord`
+    ///
+    /// The [`coords!`] macro is a small wrapper around `new`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use liboverviewer::coords::*;
+    /// let a: Coord<Block, World> = Coord::new(1, 2, 3);
+    /// ```
+    ///
+    /// ```
+    /// # use liboverviewer::coords::*;
+    /// let a = Coord::<Block, World>::new(1, 2, 3);
+    /// ```
+    ///
+    /// [`coords!`]: ../macro.coord!.html
+    pub fn new(x: i64, y: i64, z: i64) -> Coord<El, In> {
+        Coord {x:x, y:y, z:z, phantom: PhantomData} 
+    }
+
     // take an A-in-B coordinate, and add on a B-in-C coordinate
     // to create an A-in-C coordinate
     /// Given a A-in-B coordinate, add a B-in-C coordinate to create an A-in-C coordinate.
@@ -214,7 +225,6 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     /// ```
     /// # #[macro_use] extern crate liboverviewer;
     /// # use liboverviewer::coords::*;
-    /// # use std::marker::PhantomData;
     /// # fn main() {
     /// let a = coord!{Block, Chunk, 13, 64, 12};
     /// let b = coord!{Chunk, World, 2, 0, -2}; // unused coords must be zero
@@ -251,7 +261,6 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     /// ```
     /// # #[macro_use] extern crate liboverviewer;
     /// # use liboverviewer::coords::*;
-    /// # use std::marker::PhantomData;
     /// # fn main() {
     /// let block = coord!{Block, World, 45, 64, -20};
     /// let (a, b): (Coord<Block, Chunk>, Coord<Chunk, World>) = block.split();
@@ -271,7 +280,6 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     /// ```
     /// # #[macro_use] extern crate liboverviewer;
     /// # use liboverviewer::coords::*;
-    /// # use std::marker::PhantomData;
     /// # fn main() {
     /// let block = coord!{Block, World, 45, 64, -20};
     /// let (a, b) =  block.split::<Chunk>();
@@ -300,8 +308,6 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::marker::PhantomData;
-
 
     #[test]
     fn test_coord_types() {
