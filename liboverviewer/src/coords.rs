@@ -1,9 +1,25 @@
-//! Coordinate types for liboverviewer
+//! Coordinate types for liboverviewer.
 //!
 //! Within Minecraft, there are several different coordinate types.  For example, block
 //! coordinates, chunk coordintes, and region coordinates.  Each type can also exist in different
-//! systems.  For example, a block with global world coordinates of (27, 79, -8) has in-chunk
-//! coordinates of (11, 79, -9).
+//! systems.  For example, a block with global world coordinates of `(27, 79, -8)` has in-chunk
+//! coordinates of `(11, 79, -9)`.
+//!
+//! This module represents each type independently, via the
+//! parametric [`Coord`] type.  This will be the type that you'll interact with most directly.  To
+//! construct coordinates, use the [`coords!`] macro.
+//!
+//! To convert between the different coordinate systems, use the [`join`] and [`split`] methods.
+//! See their documentation for examples.
+//!
+//! The rest of the types in this module are mostly internal types to glue things together.  Unless
+//! you are trying to build a new coordinate type/system, you will not use them directly, and they
+//! can be ignored.
+//!
+//! [`Coord`]: struct.Coord.html
+//! [`coords!`]: ../macro.coord!.html
+//! [`join`]: struct.Coord.html#method.join
+//! [`split`]: struct.Coord.html#method.split
 use std::fmt::{Formatter, Error, Debug};
 use std::marker::PhantomData;
 
@@ -11,15 +27,47 @@ use std::marker::PhantomData;
 /// The most basic coordinate type
 pub struct Block;
 
-/// Abstractly represents a a coordinate type that made of a smaller type `N`
+/// Abstractly represents a coordinate type that made of a smaller type `N`
+///
+/// For example:
+///
+/// ```ignore
+/// type Region = Succ<Chunk>;
+/// ```
+///
+/// indicates that a Region is made up of Chunks.  The exact number of Chunks is specified by
+/// implementing the [`System`] trait on Region.
+///
+/// [`System`]: trait.System.html
 pub struct Succ<N>(PhantomData<N>);
 
 // a System is defined by its max coordinate type
 // and its bit width in each direction, in terms of what it contains.
 // A width of 3 on a Region means 8 chunks in that direction.
 /// A Coordinate System
+///
+/// A `System` is defined by its name and its bitwidth in each direction.  This specifics how
+/// things it contains as 2^n
+///
+/// For example, this is how the [`Region`] System is defined:
+///
+/// ```ignore
+/// pub type Region = Succ<Chunk>;
+/// impl System for Region {
+///     fn name() -> &'static str { "Region" }
+///     fn size() -> (u8, u8, u8) {
+///         let (px, py, pz) = <Chunk as System>::size();
+///         (5 + px, 0 + py, 5 + pz)
+///     }
+/// }
+/// ```
+///
+/// [`Region`]: type.Region.html
 pub trait System {
+    /// The name of this sytem.
     fn name() -> &'static str;
+
+    /// Its size in each direction, specificed as a bitwidth
     fn size() -> (u8, u8, u8) { (0, 0, 0) }
 }
 
@@ -62,6 +110,7 @@ contains!{
 impl Region, (5, 0, 5), Chunk}
 
 // World is also special, it contains infinity regions
+/// a World contains an infinite amount of chunks in the xz plane
 pub type World = Succ<Region>;
 impl System for World {
     fn name() -> &'static str { "World" }
@@ -87,6 +136,10 @@ impl<M, N: Contained<M>> Contained<Succ<M>> for Succ<N> {}
 ///
 /// The `El` type parameter is the coordinate type, and `In` is the system in which this coordinate
 /// type exists
+///
+/// The best way to construct a `Coord` is to use the [`coord!`] macro.
+///
+/// [`coord!`]: ../macro.coord!.html
 #[derive(Clone, Copy)]
 pub struct Coord<El, In> {
     /// Positive X faces east
@@ -97,12 +150,15 @@ pub struct Coord<El, In> {
 
     /// Positive Z faces south
     pub z: i64,
-    phantom: PhantomData<(El, In)>
+    pub phantom: PhantomData<(El, In)>
 }
 
 // macro to make constructing coordinates less verbose
 // coord!(x, y, z) or coord!(El, In, x, y, z) both work.
-/// A macro to make constructing coordinates less verbose
+/// A macro to make constructing coordinates less verbose.
+///
+/// You could just use the constructor for [`Coord`], but this macro is generally easier and
+/// clearer.
 ///
 /// # Examples
 ///
@@ -116,6 +172,8 @@ pub struct Coord<El, In> {
 /// ```ignore
 /// coord!{0, 1, 2}
 /// ```
+///
+/// [`Coord`]: coords/struct.Coord.html
 #[macro_export]
 macro_rules! coord {
     ($x:expr, $y:expr, $z:expr) => {
@@ -147,6 +205,28 @@ impl<El: System + Contained<In>, In: System> Debug for Coord<El, In> {
 impl<El: Contained<In> + System, In: System> Coord<El, In> {
     // take an A-in-B coordinate, and add on a B-in-C coordinate
     // to create an A-in-C coordinate
+    /// Given a A-in-B coordinate, add a B-in-C coordinate to create an A-in-C coordinate.
+    ///
+    /// For example, given an in-chunk coordinate of `(13, 64, 12)` and a block coordinate of (2,
+    /// -2), what is the global block coordinate?  This is essentially the opposite of the example
+    /// given for [`split`]
+    ///
+    /// ```
+    /// # #[macro_use] extern crate liboverviewer;
+    /// # use liboverviewer::coords::*;
+    /// # use std::marker::PhantomData;
+    /// # fn main() {
+    /// let a = coord!{Block, Chunk, 13, 64, 12};
+    /// let b = coord!{Chunk, World, 2, 0, -2}; // unused coords must be zero
+    /// let c: Coord<Block, World> = a.join(b);
+    ///
+    /// assert_eq!(c.x, 45);
+    /// assert_eq!(c.y, 64);
+    /// assert_eq!(c.z, -20);
+    /// # }
+    /// ```
+    ///
+    /// [`split`]: #method.split
     pub fn join<End>(self, other: Coord<In, End>) -> Coord<El, End>
         where El: Contained<End>, In: Contained<End>, End: System
     {
@@ -163,14 +243,44 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     // use like: let (a_in_b, b_in_c) = coord.split::<B>()
     /// Split this coordinate into two components
     ///
-    /// # Examples
+    /// # Example
     ///
     /// Given a global block coordinate, find the chunk that contains this block, and block
     /// coordinates within that chunk
     ///
-    /// ```ignore
+    /// ```
+    /// # #[macro_use] extern crate liboverviewer;
+    /// # use liboverviewer::coords::*;
+    /// # use std::marker::PhantomData;
+    /// # fn main() {
     /// let block = coord!{Block, World, 45, 64, -20};
-    /// let (a, b): (Coord<Block, Chunk>, Coord<Chunk, World>) = block::split();
+    /// let (a, b): (Coord<Block, Chunk>, Coord<Chunk, World>) = block.split();
+    /// // `a` is the block coords within the chunk
+    /// // `b` is the chunk coords within the world
+    /// assert_eq!(a.x, 13);
+    /// assert_eq!(a.y, 64);
+    /// assert_eq!(a.z, 12);
+    ///
+    /// assert_eq!(b.x, 2);
+    /// assert_eq!(b.z, -2);
+    /// # }
+    /// ```
+    ///
+    /// A less verbose way of the above would be:
+    ///
+    /// ```
+    /// # #[macro_use] extern crate liboverviewer;
+    /// # use liboverviewer::coords::*;
+    /// # use std::marker::PhantomData;
+    /// # fn main() {
+    /// let block = coord!{Block, World, 45, 64, -20};
+    /// let (a, b) =  block.split::<Chunk>();
+    /// # assert_eq!(a.x, 13);
+    /// # assert_eq!(a.y, 64);
+    /// # assert_eq!(a.z, 12);
+    /// # assert_eq!(b.x, 2);
+    /// # assert_eq!(b.z, -2);
+    /// # }
     /// ```
     pub fn split<Mid>(self) -> (Coord<El, Mid>, Coord<Mid, In>)
         where El: Contained<Mid>, Mid: System + Contained<In>
