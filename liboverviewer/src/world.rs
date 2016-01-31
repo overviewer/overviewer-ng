@@ -5,7 +5,8 @@ use std::path::{PathBuf, Path};
 use std::convert::From;
 use std::fs::File;
 
-use super::ChunkCoord;
+use super::coords;
+use super::coords::Coord;
 
 /// Encapsulates the concept of a Minecraft "world". A Minecraft world is a
 /// level.dat file, a players directory with info about each player, a data
@@ -117,9 +118,9 @@ impl Regionset {
         unimplemented!()
     }
 
-    pub fn get_chunk(&self, xz: ChunkCoord) -> Chunk {
-        unimplemented!()
-    }
+    //pub fn get_chunk(&self, xz: ChunkCoord) -> Chunk {
+    //    unimplemented!()
+    //}
 
     /// Returns an iterator over all chunk metadata in this world. Iterates
     /// over tuples of integers (x,z,mtime) for each chunk.  Other chunk data
@@ -128,7 +129,8 @@ impl Regionset {
         unimplemented!()
     }
 
-    pub fn get_chunk_mtime(&self, xz: ChunkCoord) -> u64 {
+    pub fn get_chunk_mtime(&self, xz: Coord<coords::Chunk, coords::Region>) -> u64 {
+        let x = xz.x;
         unimplemented!()
     }
 }
