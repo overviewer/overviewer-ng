@@ -59,7 +59,6 @@ impl World {
     }
 }
 
-
 pub struct RegionsetIter;
 
 impl Iterator for RegionsetIter {
@@ -68,7 +67,6 @@ impl Iterator for RegionsetIter {
         unimplemented!()
     }
 }
-
 
 
 /// This object is the gateway to a particular Minecraft dimension within a
@@ -81,7 +79,9 @@ impl Iterator for RegionsetIter {
 #[derive(Debug)]
 pub struct Regionset {
     region_dir: PathBuf,
-    regions: Vec<(i32, i32)>
+
+    // A vec of regions might be too memory intensive, so hold a list of regions by coords
+    regions: Vec<(i64, i64)>
 }
 impl Regionset {
     /// Given a folder of MCA files, create a RegionSet
@@ -98,8 +98,8 @@ impl Regionset {
             let fname_str = file_name.to_string_lossy();
             let components: Vec<&str> = fname_str.split('.').collect();
             if components.len() == 4 && components[0] == "r" && components[3] == "mca" {
-                let x = i32::from_str_radix(components[1], 10);
-                let z = i32::from_str_radix(components[2], 10);
+                let x = i64::from_str_radix(components[1], 10);
+                let z = i64::from_str_radix(components[2], 10);
                 if x.is_ok() && z.is_ok() {
                     regions.push((x.unwrap(), z.unwrap())); 
                 }
@@ -118,9 +118,21 @@ impl Regionset {
         unimplemented!()
     }
 
-    //pub fn get_chunk(&self, xz: ChunkCoord) -> Chunk {
-    //    unimplemented!()
-    //}
+    pub fn get_chunk(&self, xz: Coord<coords::Chunk, coords::World>) -> Option<Chunk> {
+        // what regionfile is this chunk in?
+        let (c, r) =  xz.split::<coords::Region>();
+        if !self.regions.contains(&(r.x, r.z)) { return None }
+        let f = self.region_dir.join(format!("r.{}.{}.mca", r.x, r.z));
+        if let Ok(f) = File::open(f) {
+            if let Ok(mut region_file) = RegionFile::new(f) {
+                if let Ok(chunk) = region_file.load_chunk(c.x as u8, c.z as u8) {
+                    return Some(Chunk(chunk))
+                }
+            }
+        }
+
+        None
+    }
 
     /// Returns an iterator over all chunk metadata in this world. Iterates
     /// over tuples of integers (x,z,mtime) for each chunk.  Other chunk data
@@ -129,12 +141,13 @@ impl Regionset {
         unimplemented!()
     }
 
-    pub fn get_chunk_mtime(&self, xz: Coord<coords::Chunk, coords::Region>) -> u64 {
+    pub fn get_chunk_mtime(&self, xz: Coord<coords::Chunk, coords::World>) -> u64 {
         let x = xz.x;
         unimplemented!()
     }
 }
 
+#[derive(Debug)]
 pub struct Chunk(Tag);
 pub struct ChunkIter;
 
@@ -148,6 +161,7 @@ impl Iterator for ChunkIter {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ::coords::Coord;
 
     #[test]
     #[should_panic(expected = "IOError")]
@@ -165,6 +179,28 @@ mod test {
     fn test_world_open() {
         let world = World::new("tests/data/OTD/world_189/").unwrap();
         assert_eq!(world.regionsets.len(), 1);
+    }
+
+    #[test]
+    fn test_regionset_get_chunk() {
+        use ::nbtrs::Taglike;
+
+        {
+            let rset = Regionset::new("tests/data/OTD/world_189/region").unwrap();
+            let Chunk(chunk) = rset.get_chunk(Coord::new(0, 0, 0)).unwrap();
+            let x = &chunk.key("Level").key("xPos").as_i32().unwrap();
+            let z = &chunk.key("Level").key("zPos").as_i32().unwrap();
+            assert_eq!(x, &0);
+            assert_eq!(z, &0);
+        }
+        {
+            let rset = Regionset::new("tests/data/OTD/world_189/region").unwrap();
+            let Chunk(chunk) = rset.get_chunk(Coord::new(4, 0, 8)).unwrap();
+            let x = &chunk.key("Level").key("xPos").as_i32().unwrap();
+            let z = &chunk.key("Level").key("zPos").as_i32().unwrap();
+            assert_eq!(x, &4);
+            assert_eq!(z, &8);
+        }
     }
 
 }
