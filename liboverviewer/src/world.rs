@@ -29,7 +29,7 @@ impl World {
 
         let level_dat = world_dir.join("level.dat");
         let level_dat_file = try!(File::open(level_dat));
-        let mut decoder = try!(GzDecoder::new(level_dat_file)); 
+        let mut decoder = try!(GzDecoder::new(level_dat_file));
         let (_, level_dat_nbt) = try!(Tag::parse(&mut decoder));
 
         let mut regionsets = Vec::new();
@@ -37,7 +37,10 @@ impl World {
             // if this is a directory and it contains .mca files, then assume that it's a regionset
             let path = try!(entry).path();
             if path.is_dir() {
-                if try!(path.read_dir()).any(|e| e.ok().map_or(false, |f| f.path().extension().map_or(false, |ex| ex == "mca"))) {
+                if try!(path.read_dir()).any(|e| {
+                    e.ok().map_or(false,
+                                  |f| f.path().extension().map_or(false, |ex| ex == "mca"))
+                }) {
                     regionsets.push(try!(Regionset::new(path)));
                 }
             }
@@ -81,14 +84,14 @@ pub struct Regionset {
     region_dir: PathBuf,
 
     // A vec of regions might be too memory intensive, so hold a list of regions by coords
-    regions: Vec<(i64, i64)>
+    regions: Vec<(i64, i64)>,
 }
 impl Regionset {
     /// Given a folder of MCA files, create a RegionSet
     pub fn new<P: AsRef<Path>>(p: P) -> Result<Regionset, OverviewerError> {
         let region_dir = p.as_ref();
         if !region_dir.exists() {
-            return Err(From::from(format!("Path {:?} does not exist", region_dir)))
+            return Err(From::from(format!("Path {:?} does not exist", region_dir)));
         }
 
         let mut regions = Vec::new();
@@ -101,15 +104,15 @@ impl Regionset {
                 let x = i64::from_str_radix(components[1], 10);
                 let z = i64::from_str_radix(components[2], 10);
                 if x.is_ok() && z.is_ok() {
-                    regions.push((x.unwrap(), z.unwrap())); 
+                    regions.push((x.unwrap(), z.unwrap()));
                 }
             }
 
         }
 
-        Ok(Regionset{
+        Ok(Regionset {
             region_dir: region_dir.to_owned(),
-            regions: regions
+            regions: regions,
         })
 
     }
@@ -120,13 +123,15 @@ impl Regionset {
 
     pub fn get_chunk(&self, xz: Coord<coords::Chunk, coords::World>) -> Option<Chunk> {
         // what regionfile is this chunk in?
-        let (c, r) =  xz.split::<coords::Region>();
-        if !self.regions.contains(&(r.x, r.z)) { return None }
+        let (c, r) = xz.split::<coords::Region>();
+        if !self.regions.contains(&(r.x, r.z)) {
+            return None;
+        }
         let f = self.region_dir.join(format!("r.{}.{}.mca", r.x, r.z));
         if let Ok(f) = File::open(f) {
             if let Ok(mut region_file) = RegionFile::new(f) {
                 if let Ok(chunk) = region_file.load_chunk(c.x as u8, c.z as u8) {
-                    return Some(Chunk(chunk))
+                    return Some(Chunk(chunk));
                 }
             }
         }
@@ -161,7 +166,7 @@ impl Iterator for ChunkIter {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ::coords::Coord;
+    use coords::Coord;
 
     #[test]
     #[should_panic(expected = "IOError")]
@@ -183,7 +188,7 @@ mod test {
 
     #[test]
     fn test_regionset_get_chunk() {
-        use ::nbtrs::Taglike;
+        use nbtrs::Taglike;
 
         {
             let rset = Regionset::new("tests/data/OTD/world_189/region").unwrap();
