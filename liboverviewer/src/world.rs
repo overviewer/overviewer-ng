@@ -146,9 +146,22 @@ impl Regionset {
         unimplemented!()
     }
 
-    pub fn get_chunk_mtime(&self, xz: Coord<coords::Chunk, coords::World>) -> u64 {
-        let x = xz.x;
-        unimplemented!()
+    // TODO consider using something other than a u32 for time (like bring in one of the types from
+    // chrono)
+    pub fn get_chunk_mtime(&self, xz: Coord<coords::Chunk, coords::World>) -> Option<u32> {
+        // what regionfile is this chunk in?
+        let (c, r) = xz.split::<coords::Region>();
+        if !self.regions.contains(&(r.x, r.z)) {
+            return None;
+        }
+        let f = self.region_dir.join(format!("r.{}.{}.mca", r.x, r.z));
+        if let Ok(f) = File::open(f) {
+            if let Ok(region_file) = RegionFile::new(f) {
+                return region_file.get_chunk_timestamp(c.x as u8, c.z as u8);
+            }
+        }
+
+        None
     }
 }
 
@@ -206,6 +219,13 @@ mod test {
             assert_eq!(x, &4);
             assert_eq!(z, &8);
         }
+    }
+
+    #[test]
+    fn test_regionset_get_chunk_mtime() {
+        let rset = Regionset::new("tests/data/OTD/world_189/region").unwrap();
+        assert_eq!(rset.get_chunk_mtime(Coord::new(4, 0, 8)), Some(1454034069));
+        assert_eq!(rset.get_chunk_mtime(Coord::new(12, 0, 3)), Some(1454033798));
     }
 
 }
