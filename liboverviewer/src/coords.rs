@@ -25,6 +25,7 @@ use std::marker::PhantomData;
 
 // our basic systems: Block, and Things Bigger Than Block
 /// The most basic coordinate type
+#[derive(Clone, Copy)]
 pub struct Block;
 
 /// Abstractly represents a coordinate type that made of a smaller type `N`
@@ -39,6 +40,7 @@ pub struct Block;
 /// implementing the [`System`] trait on Region.
 ///
 /// [`System`]: trait.System.html
+#[derive(Clone, Copy)]
 pub struct Succ<N>(PhantomData<N>);
 
 // a System is defined by its max coordinate type
@@ -310,7 +312,7 @@ impl<El: Contained<In> + System, In: System> Coord<El, In> {
     /// # assert_eq!(b.z, -2);
     /// # }
     /// ```
-    pub fn split<Mid>(self) -> (Coord<El, Mid>, Coord<Mid, In>)
+    pub fn split<Mid>(&self) -> (Coord<El, Mid>, Coord<Mid, In>)
         where El: Contained<Mid>,
               Mid: System + Contained<In>
     {

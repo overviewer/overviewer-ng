@@ -91,7 +91,7 @@ pub struct Regionset<'fs, FS: rio::FSRead<'fs>> {
     // A vec of regions might be too memory intensive, so hold a list of regions by coords
     regions: Vec<(i64, i64)>,
 
-    cache: RefCell<LruCache<(i64, i64), RegionFile<FS::ReadFile>>>,
+    region_cache: RefCell<LruCache<(i64, i64), RegionFile<FS::ReadFile>>>,
     fs: &'fs FS
 }
 
@@ -122,7 +122,7 @@ impl<'fs, FS> Regionset<'fs, FS> where FS: rio::FSRead<'fs>, FS::ReadFile: Read 
         Ok(Regionset {
             region_dir: region_dir.to_owned(),
             regions: regions,
-            cache: RefCell::new(LruCache::with_capacity(16)),
+            region_cache: RefCell::new(LruCache::with_capacity(16)),
             fs: fs
         })
 
@@ -132,6 +132,22 @@ impl<'fs, FS> Regionset<'fs, FS> where FS: rio::FSRead<'fs>, FS::ReadFile: Read 
         unimplemented!()
     }
 
+    pub fn chunk_exists(&self, xz: Coord<coords::Chunk, coords::World>) -> bool {
+        let (c, r) = xz.split::<coords::Region>();
+        if !self.regions.contains(&(r.x, r.z)) {
+            return false;
+        }
+
+        let mut region_cache = self.region_cache.borrow_mut();
+        let region_file: &mut RegionFile<_> = region_cache.entry((r.x, r.z)).or_insert_with(|| {
+            let fp = self.region_dir.join(format!("r.{}.{}.mca", r.x, r.z));
+            let f = self.fs.open(fp).unwrap();
+            RegionFile::new(f).unwrap()
+        });
+
+        region_file.chunk_exists(c.x as u8, c.z as u8)
+    }
+
     pub fn get_chunk(&self, xz: Coord<coords::Chunk, coords::World>) -> Option<Chunk> {
         // what regionfile is this chunk in?
         let (c, r) = xz.split::<coords::Region>();
@@ -139,12 +155,17 @@ impl<'fs, FS> Regionset<'fs, FS> where FS: rio::FSRead<'fs>, FS::ReadFile: Read 
             return None;
         }
 
-        let mut cache = self.cache.borrow_mut();
-        let region_file: &mut RegionFile<_> = cache.entry((r.x, r.z)).or_insert_with(|| {
+        let mut region_cache = self.region_cache.borrow_mut();
+        let region_file: &mut RegionFile<_> = region_cache.entry((r.x, r.z)).or_insert_with(|| {
             let fp = self.region_dir.join(format!("r.{}.{}.mca", r.x, r.z));
+            println!("loading {:?} from disk", fp);
             let f = self.fs.open(fp).unwrap();
             RegionFile::new(f).unwrap()
         });
+
+        if !region_file.chunk_exists(c.x as u8, c.z as u8) {
+            return None;
+        }
 
         if let Ok(chunk) = region_file.load_chunk(c.x as u8, c.z as u8) {
             return Some(Chunk(chunk));
@@ -271,7 +292,7 @@ mod test {
     #[test]
     fn test_chunk_heightmap() {
         return;
-        let fs: rio::Native = build_fs();
+        let fs: rio::Native = rio::Native::new("/");
         let mut rset = Regionset::new(&fs, "/storage/home/achin/.minecraft/saves/world_189/region").unwrap();
         let chunk = rset.get_chunk(Coord::new(6, 0, -1)).unwrap();
         chunk.get_heightmap();

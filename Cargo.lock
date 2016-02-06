@@ -5,6 +5,7 @@ dependencies = [
  "image 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "liboverviewer 0.1.0",
  "nbtrs 0.1.1 (git+https://github.com/overviewer/nbtrs)",
+ "rio 0.1.1 (git+https://github.com/overviewer/rio)",
 ]
 
 [[package]]
