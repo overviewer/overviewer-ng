@@ -5,6 +5,10 @@ authors = ["Andrew Chin <achin@eminence32.net>"]
 description = "A library for rendering Minecraft worlds"
 
 [dependencies]
-nbtrs = {git="https://github.com/overviewer/nbtrs"}
+nbtrs = {git="https://github.com/overviewer/nbtrs", version="0.1.1"}
+rio = {git="https://github.com/overviewer/rio", version="0.1.1"}
 log = "0.3"
 flate2 = "0.2"
+
+# At the moment we need the latest git version
+lru_time_cache = {git="https://github.com/maidsafe/lru_time_cache.git"}
