@@ -25,6 +25,8 @@ Finally, you can run the tests with:
 
     cargo test
 
+You should also run the liboverviewer tests by running `cargo test` in the liboverviewer directory.
+
 ## Contributing
 
 Most (if not all) communication during early development stages is currently
