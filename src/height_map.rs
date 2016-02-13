@@ -1,4 +1,5 @@
 extern crate image;
+#[macro_use]
 extern crate liboverviewer;
 extern crate rio;
 
@@ -23,16 +24,14 @@ fn main() {
     // produce an imagemap for a single region, where each block column is 1 pixel.  so 512 by 512
     for chunk_x in 0..32 {
         for chunk_z in 0..32 {
-            let chunk_in_region = coords::Coord::new(chunk_x, 0, chunk_z);
+            let chunk_in_region = coord!(chunk_x, 0, chunk_z);
             if let Some(chunk) = rset.get_chunk(chunk_in_region) {
                 let map = chunk.get_heightmap();
 
                 for block_x in 0..16 {
                     for block_z in 0..16 {
-                        let block_in_chunk = coords::Coord::<coords::Block,
-                                                             coords::Chunk>::new(block_x,
-                                                                                 0,
-                                                                                 block_z);
+                        let block_in_chunk =
+                            coord!{coords::Block, coords::Chunk, block_x, 0, block_z};
                         let h = map.get((block_x + (block_z * 16)) as usize).unwrap();
 
                         let block_in_region = block_in_chunk.join(chunk_in_region);

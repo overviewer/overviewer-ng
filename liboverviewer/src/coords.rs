@@ -186,10 +186,10 @@ pub struct Coord<El, In> {
 #[macro_export]
 macro_rules! coord {
     ($x:expr, $y:expr, $z:expr) => {
-        Coord::new($x, $y, $z)
+        $crate::coords::Coord::new($x, $y, $z)
     };
     ($from:ty, $to:ty, $x:expr, $y:expr, $z:expr) => {
-        Coord::<$from, $to>::new($x, $y, $z)
+        $crate::coords::Coord::<$from, $to>::new($x, $y, $z)
     };
 }
 
