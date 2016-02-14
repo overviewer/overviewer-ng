@@ -5,6 +5,7 @@ extern crate rio;
 
 use liboverviewer::world::*;
 use liboverviewer::coords;
+use rio::FSWrite;
 
 use std::fs::File;
 use std::path::Path;
@@ -49,10 +50,11 @@ fn main() {
     }
 
 
-    let ref mut fout = File::create(&Path::new("hmap.png")).unwrap();
+    let pb = rio::PathBuf::from(std::env::current_dir().unwrap());
+    let mut fout = fs.create(pb.join("hmap.png")).unwrap();
 
     // We must indicate the image’s color type and what format to save as
-    let _ = image::ImageLuma8(imgbuf).save(fout, image::PNG);
+    let _ = image::ImageLuma8(imgbuf).save(&mut fout, image::PNG);
 
 
 }

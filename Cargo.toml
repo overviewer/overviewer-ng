@@ -7,7 +7,7 @@ description = "A tool to render Minecraft worlds"
 [dependencies]
 liboverviewer = {path = "liboverviewer"}
 nbtrs = {git = "https://github.com/overviewer/nbtrs"}
-rio = {git="https://github.com/overviewer/rio", version="0.1.1"}
+rio = {git="https://github.com/overviewer/rio", version="^0.1.2"}
 image = "0.6"
 
 
